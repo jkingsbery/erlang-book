@@ -1,7 +1,10 @@
 -module(frequency).
--export([start/0, stop/0, allocate/0, deallocate/1]).
+-export([start/0, stop/0, allocate/0, deallocate/1,available/0]).
 -export([init/0]).
 
+% TODO: Shouldn't be able to de-allocate the same frequency multiple times
+% TODO: Only the process that allocates should be able to deallocate
+% TODO: Processes should have a maximum number of frequencies allocated
 
 % Server
 start()->
@@ -21,6 +24,10 @@ loop(Frequencies)->
 	    NewFrequencies = deallocate(Frequencies, Freq),
 	    reply(Pid,ok),
 	    loop(NewFrequencies);
+	{request,Pid,available}->
+	    {Free,_InUse}=Frequencies,
+	    reply(Pid,Free),
+	    loop(Frequencies);
 	{request,Pid,stop} ->
 	    reply(Pid,ok),
 	    true
@@ -52,10 +59,17 @@ allocate()->
     call(allocate).
 deallocate(Freq)->
     call({deallocate,Freq}).
+available()->
+    call(available).
 
 call(Message)->
-    frequency ! {request,self(),Message},
-    receive
-	{reply, Reply} ->
-	     Reply
+    case whereis(frequency) of
+	undefined ->
+	    {error,frequency_server_unavailable}; 
+	_Else ->
+	    frequency ! {request,self(),Message},
+	    receive
+		{reply, Reply} ->
+		    Reply
+	    end
     end.
