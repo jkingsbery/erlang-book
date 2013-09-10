@@ -2,7 +2,7 @@
 -export([start/0, stop/0, allocate/0, deallocate/1,available/0]).
 -export([init/0]).
 
-% TODO: Shouldn't be able to de-allocate the same frequency multiple times
+% TODO: Clean error message if you try to start it when it's already started.
 % TODO: Only the process that allocates should be able to deallocate
 % TODO: Processes should have a maximum number of frequencies allocated
 
@@ -43,8 +43,14 @@ allocate({[Freq|OtherFrequencies],InUseFrequences},Pid) ->
     {{OtherFrequencies,[{Freq,Pid}|InUseFrequences]},{ok,Freq}}.
 
 deallocate({Free,Allocated},Freq)->
-    NewAllocated=lists:keydelete(Freq,1,Allocated),
-    {[Freq|Free],NewAllocated}.
+    IsMember=lists:member(Freq,Free),
+    if
+	not IsMember ->
+	    NewAllocated=lists:keydelete(Freq,1,Allocated),
+	    {[Freq|Free],NewAllocated};
+	true ->
+	    {Free,Allocated}
+    end.
     
 
 
