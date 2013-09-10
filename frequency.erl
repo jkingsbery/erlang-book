@@ -2,13 +2,19 @@
 -export([start/0, stop/0, allocate/0, deallocate/1,available/0]).
 -export([init/0]).
 
-% TODO: Clean error message if you try to start it when it's already started.
 % TODO: Only the process that allocates should be able to deallocate
 % TODO: Processes should have a maximum number of frequencies allocated
 
 % Server
 start()->
-    register(frequency,spawn(frequency,init,[])).
+    case whereis(frequency) of
+	undefined ->
+	    register(frequency,spawn(frequency,init,[]));
+	_Else ->
+	    {error,already_started}
+    end.
+
+
 
 init()->
     Frequencies={get_frequencies(),[]},
