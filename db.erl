@@ -17,7 +17,8 @@ delete(Key,{db,[]})->
 delete(Key,{db,[{Key,Element}|List]})->
     {db,List};
 delete(Key,{db,[{_OtherKey,_OtherElement}|List]})->
-    [{_OtherKey,_OtherElement}|delete(Key,{db,List})].
+    {db,Deleted}=delete(Key,{db,List}),
+    {db,[{_OtherKey,_OtherElement}|Deleted]}.
     
 
 read(_Key,{db,[]})->

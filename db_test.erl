@@ -15,6 +15,10 @@ not_there_test()->
     Db1=db:new(),
     {error,instance}=db:read(86753,Db1).
 
+simple_delete_test()->
+    Db={db,[{jamie,foo}]},
+    Db=db:delete(not_there,Db).
+
 book_test()->
     Db=db:new(),
     Db1=db:write(francesco,london,Db),
