@@ -1,25 +1,62 @@
 -module(dbserver).
 
+-export([start/0,stop/0,write/2,delete/1,read/1,match/1,loop/1]).
+
 start()->
-    register(dbserver,spawn(dbserver,loop,db:new())),
-    ok.
+    register(db, spawn(?MODULE,loop,[db:new()])).
+
+
+stop()->
+    db ! stop.
 
 loop(Db)->
     receive
-	{From,stop}->
-	    true;
-	{From,_} ->
-	    From ! {self(), no_such_command},
-	    loop(Db)
+	{write, From, Key, Element }->
+	    NewDb=db:write(Key,Element,Db),
+	    From ! {self(), ok},
+	    loop(NewDb);
+	{read, From, Key}->
+	    From ! {self(), db:read(Key,Db)},
+	    loop(Db);
+	{match, From, Element}->
+	    From ! {self(),db:match(Element,Db)},
+	    loop(Db);
+	{delete,From,Element}->
+	    NewDb=db:delete(Element,Db),
+	    From ! {self(),ok},
+	    loop(NewDb);
+	
+	stop ->
+	    true
     end.
 
-stop()->
-    ok.
 write(Key,Element)->
-    ok.
+    db ! {write,self(),Key,Element},
+    receive
+	{_Pid,ok}->
+	    ok;
+	_ ->
+	    false
+    end.
+
 delete(Key)->
-    ok.
+    db ! {delete,self(),Key},
+    receive
+	{_Pid,Response}->
+	    Response
+    end.
+
 read(Key)->
-    {ok,element}. % or {error, instance}.
+    db ! {read,self(),Key},
+    receive
+	{_Pid,Response}->
+	    Response
+    end.
+	
 match(Element)->
-    [].
+    db ! {match,self(),Element},
+    receive
+	{_Pid,Response}->
+	    Response
+    end.
+
