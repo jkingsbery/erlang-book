@@ -2,6 +2,8 @@
 -export([start/0, stop/0, allocate/0, deallocate/1,available/0]).
 -export([init/0]).
 
+-export([allocate/2,deallocate/3]).
+
 % TODO: Only the process that allocates should be able to deallocate
 % TODO: Processes should have a maximum number of frequencies allocated
 
@@ -14,8 +16,6 @@ start()->
 	    {error,already_started}
     end.
 
-
-
 init()->
     Frequencies={get_frequencies(),[]},
     loop(Frequencies).
@@ -27,8 +27,8 @@ loop(Frequencies)->
 	    reply(Pid,Reply),
 	    loop(NewFrequencies);
 	{request,Pid,{deallocate,Freq}} ->
-	    NewFrequencies = deallocate(Frequencies, Freq),
-	    reply(Pid,ok),
+	    {Status,NewFrequencies} = deallocate(Frequencies, Freq,Pid),
+	    reply(Pid,Status),
 	    loop(NewFrequencies);
 	{request,Pid,available}->
 	    {Free,_InUse}=Frequencies,
@@ -48,16 +48,22 @@ allocate({[],InUseFrequences},_Pid)->
 allocate({[Freq|OtherFrequencies],InUseFrequences},Pid) ->
     {{OtherFrequencies,[{Freq,Pid}|InUseFrequences]},{ok,Freq}}.
 
-deallocate({Free,Allocated},Freq)->
-    IsMember=lists:member(Freq,Free),
-    if
-	not IsMember ->
+deallocate({Free,Allocated},Freq,Requester)->
+    IsFree=lists:member(Freq,Free),
+    AllocatedBy=lists:keyfind(Freq,1,Free),
+    io:format("~b~n",[Requester]),
+    io:format("~b~n",[AllocatedBy]),
+    if  
+	not IsFree and AllocatedBy=:=Requester->
 	    NewAllocated=lists:keydelete(Freq,1,Allocated),
-	    {[Freq|Free],NewAllocated};
+	    {ok,{[Freq|Free],NewAllocated}};
+        IsFree ->
+            {error_already_free,{Free,Allocated}};
+        AllocatedBy=/=Requester ->
+            {error_not_allocated_by_requester,{Free,Allocated}};
 	true ->
-	    {Free,Allocated}
+	    {error,{Free,Allocated}}
     end.
-    
 
 
 get_frequencies()->
