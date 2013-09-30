@@ -1,0 +1,1 @@
+See http://learnyousomeerlang.com/designing-a-concurrent-application
